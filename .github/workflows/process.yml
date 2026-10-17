@@ -1,0 +1,41 @@
+name: Real FFmpeg Video Processing
+
+on:
+  push:
+    paths:
+      - 'input_video/**'
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Run FFmpeg Processing
+        run: |
+          echo "جارٍ بدء المعالجة الحقيقية..."
+          INPUT_FILE=$(ls input_video/ | grep -v '.gitkeep')
+          if [ -z "$INPUT_FILE" ]; then
+            echo "لا يوجد ملف للمعالجة."
+            exit 0
+          fi
+          echo "الملف المستهدف: $INPUT_FILE"
+          
+          # أمر التحويل الحقيقي (دقة 1080p واستيفاء حركة 120fps حقيقي)
+          ffmpeg -i "input_video/$INPUT_FILE" \
+            -vf "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,minterpolate=fps=120:mi_mode=mci:mc_mode=aobmc:vsbmc=1" \
+            -c:v libx264 -preset veryfast -crf 20 \
+            -c:a aac -b:a 128k \
+            output_final.mp4
+
+      - name: Upload Result
+        uses: actions/upload-artifact@v4
+        with:
+          name: processed-video
+          path: output_final.mp4
